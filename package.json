@@ -1,0 +1,14 @@
+{
+  "name": "weiqi-visualizer",
+  "version": "1.0.0",
+  "license": "GPL-3",
+  "dependencies": {
+    "@sabaki/go-board": "^1.4.3",
+    "@sabaki/immutable-gametree": "^1.9.4",
+    "@sabaki/sgf": "^3.4.7",
+    "three": "^0.167.1"
+  },
+  "devDependencies": {
+    "vite": "^5.4.1"
+  }
+}

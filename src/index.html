@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Weiqi Visualizer</title>
+    <meta property="og:description" content="Go board visualizer" />
+    <meta property="og:site_name" content="Tristan's Zettelkasten" />
+    <meta
+      property="og:image"
+      content="https://github.com/user-attachments/assets/d9b2094e-4f4a-4669-b2ab-1bb2e8eaa0f6"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="weiqi-visualizer" />
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon" />
+    <link rel="stylesheet" href="style.css" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+  </head>
+  <body>
+    <div class="banner">
+      <span style="flex-grow: 1">
+        <input type="file" id="sgfFile" accept=".sgf" style="display: none" />
+        <input type="button" id="loadButton" value="Load SGF" />
+      </span>
+      <span>GPL Free Software</span>
+      <a
+        href="https://github.com/TristanCacqueray/weiqi-visualizer"
+        target="blank"
+        >weiqi-visualizer</a
+      >
+    </div>
+    <div id="container"></div>
+    <script type="module">
+      // setup file loader
+      const fileElt = document.getElementById("sgfFile");
+      fileElt.onchange = () => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          render(e.target.result, "container");
+        };
+        reader.readAsText(fileElt.files[0]);
+      };
+      const buttonElt = document.getElementById("loadButton");
+      buttonElt.onclick = () => {
+        fileElt.click();
+      };
+
+      // init demo
+      import { render } from "/main.js";
+      import sgf from "../pages/24-gokifu-19331016-Honinbo_Shusai-Go_Seigen.sgf?raw";
+      render(document.getElementById("container"), sgf);
+    </script>
+  </body>
+</html>
