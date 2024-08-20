@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Weiqi Visualizer</title>
+    <meta property="og:description" content="Go board visualizer" />
+    <meta property="og:site_name" content="Tristan's Zettelkasten" />
+    <meta
+      property="og:image"
+      content="https://github.com/user-attachments/assets/d9b2094e-4f4a-4669-b2ab-1bb2e8eaa0f6"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="weiqi-visualizer" />
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <style>
+      :root {
+        --wv-color-bg: #111;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      body {
+        touch-action: manipulation;
+        display: flex;
+        flex-direction: column;
+        background: var(--wv-color-bg);
+      }
+      button {
+        border-color: #222;
+        background-color: #666;
+        color: #ddd;
+        font-weight: 800;
+        border-radius: 3px;
+        padding: 4px 6px;
+        font-family: monospace;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #888;
+      }
+
+      weiqi-visualizer {
+        flex-grow: 1;
+      }
+      div.banner {
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        width: "100%";
+        font-family: monospace;
+        font-size: 0.9rem;
+      }
+      div.banner > input {
+        padding: 0px;
+        margin: 0;
+      }
+      div.banner > a {
+        color: violet;
+      }
+    </style>
+    <script type="module" crossorigin src="/weiqi-visualizer/assets/index-CP-wYD7D.js"></script>
+  </head>
+  <body>
+    <div class="banner">
+      <span style="flex-grow: 1">
+        <input type="file" id="sgfFile" accept=".sgf" style="display: none" />
+        <button id="loadButton">Load SGF</button>
+      </span>
+      <span>GPL Free Software</span>
+      <a
+        href="https://github.com/TristanCacqueray/weiqi-visualizer"
+        target="blank"
+        >weiqi-visualizer</a
+      >
+    </div>
+    <weiqi-visualizer
+      id="game-of-the-century"
+      href="24-gokifu-19331016-Honinbo_Shusai-Go_Seigen.sgf"
+      autoplay
+    ></weiqi-visualizer>
+  </body>
+</html>
