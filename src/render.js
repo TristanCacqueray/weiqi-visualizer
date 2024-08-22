@@ -12,6 +12,9 @@ const vertexShader = `
 uniform float iSize;
 // The current time
 uniform float iTime;
+uniform vec3 iClrBlack;
+uniform vec3 iClrWhite;
+uniform vec3 iClrHoshi;
 
 // data contains [color hue, size, birth]
 attribute vec3 data;
@@ -22,18 +25,17 @@ varying vec3 vColor;
 varying float vAge;
 
 void main() {
+  if (data.y > 0.) {
   if (data.x == 0.5) {
-    vColor = vec3(0x4c, 0x01, 0xfe);
+    vColor = iClrHoshi;
   } else if (data.x == 1.) {
-    vColor = vec3(0xff, 0xa6, 0.);
+    vColor = iClrWhite;
   } else {
-    vColor = vec3(0xf2, 0x05, 0xf5);
+    vColor = iClrBlack;
   }
-  vColor /= 255.;
 
   gl_PointSize = data.y * iSize * 0.05;
   vAge = (iTime - data.z) * 0.005;
-  if (data.y > 0.) {
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
   }
 }
@@ -51,14 +53,14 @@ void main() {
     vec3 col = vColor * (1.-smoothstep(0.33,0.45,dist))
     ;
 
-    if (length(uv) < size) { gl_FragColor = vec4(col,1.) ;   }
+    if (length(uv) < size) { gl_FragColor = vec4(col,0.) ;   }
     else { discard; }
 }
 `;
 
-function drawGrid() {
+function drawGrid(color) {
   const geometry = new THREE.BufferGeometry();
-  const material = new THREE.LineBasicMaterial({ color: 0x33333 });
+  const material = new THREE.LineBasicMaterial({ color });
 
   const indices = [];
   const positions = [];
@@ -84,7 +86,9 @@ function drawGrid() {
   return new THREE.LineSegments(geometry, material);
 }
 
-export function initialize(container, debug) {
+const debug = false;
+export function initialize(container, colors) {
+  console.log("Initializing three.js with", colors);
   // Setup camera, looking at a 7x7 grid centered on zero
   const size = 6.5;
   const camera = new THREE.OrthographicCamera(
@@ -97,7 +101,7 @@ export function initialize(container, debug) {
   );
 
   // Setup renderer
-  const renderer = new THREE.WebGLRenderer();
+  const renderer = new THREE.WebGLRenderer({ alpha: true });
   // renderer.setPixelRatio(window.devicePixelRatio);
   // renderer.toneMapping = THREE.NeutralToneMapping;
   container.innerHTML = "";
@@ -112,8 +116,8 @@ export function initialize(container, debug) {
 
   // Setup scene
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x101010);
-  scene.add(drawGrid());
+  // scene.background = new THREE.Color(0x101010);
+  scene.add(drawGrid(new THREE.Color(colors.grid)));
 
   // Setup points
   const hoshis = 3 * 3;
@@ -158,6 +162,9 @@ export function initialize(container, debug) {
   const uniforms = {
     iTime: { value: 0.0 },
     iSize: { value: 800.0 },
+    iClrBlack: { value: new THREE.Color(colors.black) },
+    iClrWhite: { value: new THREE.Color(colors.white) },
+    iClrHoshi: { value: new THREE.Color(colors.hoshi) },
   };
   var stones = new THREE.Points(
     geometry,
@@ -171,27 +178,15 @@ export function initialize(container, debug) {
   );
   scene.add(stones);
 
-  // Setup resize handler
-  function onWindowResize() {
-    let s = Math.min(window.innerWidth, window.innerHeight);
-    // Leave room for the bottom controller
-    if (window.innerWidth > window.innerHeight) s -= 69;
-    uniforms.iSize.value = s;
-    renderer.setSize(s, s);
-    renderer.render(scene, camera);
-  }
-  onWindowResize();
-  window.addEventListener("resize", onWindowResize);
-
-  const controls = { speed: 1 };
-  // const gui = new GUI();
-  // gui.add(controls, "speed", 0, 2);
-
   return {
-    controls,
     renderer,
     uniforms,
     stones,
+    setSize: (s) => {
+      uniforms.iSize.value = s;
+      renderer.setSize(s, s);
+      renderer.render(scene, camera);
+    },
     draw: () => {
       renderer.render(scene, camera);
       if (debug) stats.update();
