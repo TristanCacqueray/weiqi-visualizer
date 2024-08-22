@@ -1,7 +1,25 @@
 {
   "name": "weiqi-visualizer",
-  "version": "1.0.0",
   "license": "GPL-3",
+  "version": "1.0.0",
+  "description": "Weiqi board visualizer",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "dist"
+  ],
+  "main": "./dist/weiqi-visualizer.mjs",
+  "type": "module",
+  "homepage": "https://tristancacqueray.github.io/weiqi-visualizer/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TristanCacqueray/weiqi-visualizer.git"
+  },
+  "keywords": [
+    "weiqi",
+    "webgl",
+    "threejs"
+  ],
   "dependencies": {
     "@sabaki/go-board": "^1.4.3",
     "@sabaki/immutable-gametree": "^1.9.4",

@@ -1,16 +1,24 @@
 # weiqi-visualizer
 
-A weiqi board visualizer.
+[![npm](https://img.shields.io/npm/v/weiqi-visualizer)](https://www.npmjs.com/package/weiqi-visualizer)
+
+A [weiqi](https://en.wikipedia.org/wiki/Go_(game)) board visualizer.
 
 [<img src="https://github.com/user-attachments/assets/d9b2094e-4f4a-4669-b2ab-1bb2e8eaa0f6">](https://tristancacqueray.github.io/weiqi-visualizer/)
+
+Available controls:
+
+- Click to start playing.
+- Play step by step with the <kbd><</kbd> and <kbd>></kbd> button.
+- Change the playback speed with wheel.
 
 ## Usage
 
 Render a SGF file using:
 
 ```html
-  <script type="module" src="weiqi-visualizer/index.js"></script>
-  <weiqi-visualizer href="24-gokifu-19331016-Honinbo_Shusai-Go_Seigen.sgf">
+  <script type="module" src="weiqi-visualizer.js"></script>
+  <weiqi-visualizer href="./my-game.sgf">
   </weiqi-visualizer>
 ```
 
@@ -20,38 +28,39 @@ Available properties:
 - move: *number*, Load a given position
 - autoplay: *bool*, Start playing
 - speed: *float*, Playback speed
-- href: *url* Remote sgf url
+- href: *url*, Remote sgf location
 
 Usage example:
 
 ```html
   <weiqi-visualizer
     href="24-gokifu-19331016-Honinbo_Shusai-Go_Seigen.sgf"
+    speed=1.5
     autoplay>
   </weiqi-visualizer>
 ```
 
-CSS variable available:
+CSS default variable available:
 
 ```css
     /* Black stone colors */
-    --clr-black: var(--wv-color-black, #EA55B1);
+    var(--wv-color-black, #EA55B1);
     /* White stone colors */
-    --clr-white: var(--wv-color-white, #A992FA);
+    var(--wv-color-white, #A992FA);
     /* Hoshi colors */
-    --clr-hoshi: var(--wv-color-hoshi, #FEC763);
+    var(--wv-color-hoshi, #FEC763);
     /* Grid lines colors */
-    --clr-grid: var(--wv-color-grid, #333333);
+    var(--wv-color-grid, #333333);
 
     /* The main background */
-    --clr-bg: var(--wv-color-bg, #111);
+    var(--wv-color-bg, #111);
     /* UI backdrop */
-    --clr-bg2: var(--wv-color-bg2, #222);
+    var(--wv-color-bg2, #222);
     /* UI color */
-    --clr-fg: var(--wv-color-fg, #ddd);
+    var(--wv-color-fg, #ddd);
     /* UI button colors */
-    --clr-bg-btn: var(--wv-color-btn, #666);
-    --clr-over-btn: var(--wv-color-btn-over, #888);
+    var(--wv-color-btn, #666);
+    var(--wv-color-btn-over, #888);
 ```
 
 See the [index.html](./src/index.html) for a full demo.
