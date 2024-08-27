@@ -10,4 +10,6 @@ publish:
 
 .PHONY: release
 release:
+# remove optional dependencies to reduce bundle size
+	rm -Rf node_modules/iconv-lite/ node_modules/jschardet/
 	npx vite build --minify --sourcemap

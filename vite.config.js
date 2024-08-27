@@ -7,5 +7,8 @@ export default defineConfig({
       entry: resolve(__dirname, "src/index.js"),
       name: "weiqi-visualizer",
     },
+    rollupOptions: {
+      treeshake: 'smallest',
+    }
   },
 });
