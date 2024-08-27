@@ -62,19 +62,21 @@ class WeiqiVisualizer extends HTMLElement {
     this.shadowRoot.appendChild(template.content.cloneNode(true));
 
     // setup state
-    const model = mkState(this.shadowRoot);
-    this.model = model;
-
-    // setup WebGL
-    model.display = initialize(model.board, getColors(this));
-
-    // setup layout
-    onResize(model.elt, (entry) =>
-      handleResize(model, entry.contentRect.width, entry.contentRect.height),
-    );
+    this.model = mkState(this.shadowRoot);
 
     // setup controllers event handler
-    setupControllers(model);
+    setupControllers(this.model);
+
+    // setup layout
+    this.resizeObserver = onResize(this.model.elt, (contentRect) =>
+      handleResize(this.model, contentRect.width, contentRect.height),
+    );
+  }
+
+  disconnectedCallback() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -82,8 +84,14 @@ class WeiqiVisualizer extends HTMLElement {
     const setSGF = (sgf) => {
       // Parse the sgf and update infos
       setSgf(this.model, sgf);
+      // this.model.info.size = 9;
+      this.model.display = initialize(
+        this.model.board,
+        getColors(this),
+        this.model.info.size,
+      );
       // Apply the move set through property
-      setMove(this.model, this.propMove || 0);
+      setMove(this.model, this.propMove || 0, -10.0);
     };
     if (name === "move") {
       // Save the value in case the sgf is loaded after
@@ -106,26 +114,25 @@ class WeiqiVisualizer extends HTMLElement {
 }
 
 function draw(model) {
+  model.drawingStart = model.display.regl.now();
   // We are already drawing...
   if (model.animating) return;
   model.animating = true;
-  let drawingStart = performance.now();
   const animate = () => {
-    const iTime = performance.now();
+    const iTime = model.display.regl.now();
     if (model.playing) {
-      if (iTime - model.lastMoveTS > 200 / model.speed) {
+      if (iTime - model.lastMoveTS > 0.5 / model.speed) {
         // The last move was played long ago, move on to the next one
         model.lastMoveTS = iTime;
         setMove(model, model.move + 1, iTime);
       }
-    } else if (iTime - drawingStart > 1000) {
-      model.display.renderer.setAnimationLoop(null);
+    } else if (iTime - model.drawingStart > 1) {
+      model.animating.cancel();
       model.animating = false;
     }
-    model.display.uniforms.iTime.value = iTime;
-    model.display.draw();
+    model.display.drawFrame();
   };
-  model.display.renderer.setAnimationLoop(animate);
+  model.animating = model.display.regl.frame(animate);
 }
 
 function setSgf(model, sgf) {
@@ -148,11 +155,10 @@ function setMove(model, move, iTime, source) {
   }
   if (!iTime) {
     // record the move time for controller events (the animation provides the uniform one).
-    iTime = performance.now();
+    iTime = model.display.regl.now();
   }
 
   // Update the stone attributes
-  const attributes = model.display.stones.geometry.attributes;
   let start = model.move;
   let end = move;
   let dir = Math.sign(move - model.move);
@@ -169,14 +175,11 @@ function setMove(model, move, iTime, source) {
       if (dir < 0) {
         sign = psign;
       }
-      attributes.data.array[i] = sign; // (1 + sign) / 0.8;
-      attributes.data.array[i + 1] = Math.abs(sign);
-      attributes.data.array[i + 2] = iTime;
+      model.display.setStone(x, y, sign, Math.abs(sign), iTime);
     });
     // Add a slight delay when jumping long distance with the slider
-    iTime += 2;
+    iTime += 0.002;
   }
-  attributes.data.needsUpdate = true;
   draw(model);
 
   // Record the current move
@@ -192,10 +195,11 @@ function setMove(model, move, iTime, source) {
 function onResize(elt, cb) {
   const resizeObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {
-      if (entry.contentBoxSize) cb(entry);
+      if (entry.contentBoxSize) cb(entry.contentRect);
     }
   });
   resizeObserver.observe(elt);
+  return resizeObserver;
 }
 
 function handleResize(model, width, height) {
@@ -268,10 +272,9 @@ function handleResize(model, width, height) {
   model.controllers.style["margin"] = `${topMargin}px 0 0 ${leftMargin}px`;
 
   // Set the board dimention
-  const dim = Math.floor(boardSize) + "px";
-  model.display.setSize(Math.floor(boardSize));
-  // model.board.style["width"] = dim;
-  // model.board.style["height"] = dim;
+  model.board.width = boardSize;
+  model.board.height = boardSize;
+  if (model.display) model.display.refresh();
 }
 
 // Decode colors from css vars, see the template
@@ -281,19 +284,19 @@ function getColors(elt) {
     const value = style.getPropertyValue(cssVar);
     let m = value.match(/^#([0-9a-f]{3})$/i);
     if (m) {
-      return (
-        ((parseInt(m[1].charAt(0), 16) * 0x11) << 16) |
-        ((parseInt(m[1].charAt(1), 16) * 0x11) << 8) |
-        (parseInt(m[1].charAt(2), 16) * 0x11)
-      );
+      return [
+        (parseInt(m[1].charAt(0), 16) * 0x11) / 255,
+        (parseInt(m[1].charAt(1), 16) * 0x11) / 255,
+        (parseInt(m[1].charAt(2), 16) * 0x11) / 255,
+      ];
     }
     m = value.match(/^#([0-9a-f]{6})$/i);
     if (m) {
-      return (
-        (parseInt(m[1].substr(0, 2), 16) << 16) |
-        (parseInt(m[1].substr(2, 2), 16) << 8) |
-        parseInt(m[1].substr(4, 2), 16)
-      );
+      return [
+        parseInt(m[1].substr(0, 2), 16) / 255,
+        parseInt(m[1].substr(2, 2), 16) / 255,
+        parseInt(m[1].substr(4, 2), 16) / 255,
+      ];
     }
     throw (
       cssVar + ": unsupported color: " + value + ", only #rrggbb is supported"

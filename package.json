@@ -24,7 +24,7 @@
     "@sabaki/go-board": "^1.4.3",
     "@sabaki/immutable-gametree": "^1.9.4",
     "@sabaki/sgf": "^3.4.7",
-    "three": "^0.167.1"
+    "regl": "^2.1.0"
   },
   "devDependencies": {
     "vite": "^5.4.1"

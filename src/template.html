@@ -1,11 +1,11 @@
 <style>
   :host {
     /* Black stone colors */
-    --clr-black: var(--wv-color-black, #EA55B1);
+    --clr-black: var(--wv-color-black, #e32881);
     /* White stone colors */
-    --clr-white: var(--wv-color-white, #A992FA);
+    --clr-white: var(--wv-color-white, #765aff);
     /* Hoshi colors */
-    --clr-hoshi: var(--wv-color-hoshi, #FEC763);
+    --clr-hoshi: var(--wv-color-hoshi, #ffa331);
     /* Grid lines colors */
     --clr-grid: var(--wv-color-grid, #333333);
 
@@ -56,7 +56,7 @@
     display: flex;
     gap: 7px;
     align-items: center;
-    font-weight: 800;
+    font-weight: bold;
   }
 
   div#players > div {
@@ -123,7 +123,7 @@
     <bold>VS</bold>
     <div id="player-white">Whitey</div>
   </div>
-  <div id="board">BOARD</div>
+  <canvas id="board"></canvas>
   <div id="controllers">
     <button id="prev">&lt;</button>
     <button id="play">0</button>
