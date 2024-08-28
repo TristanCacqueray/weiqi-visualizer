@@ -67,10 +67,11 @@ void main() {
     float size = min(0.48, vAge/(1.+ vAge));
     vec2 uv = gl_PointCoord.xy - .5;
     float dist = length(uv);
-    float blend = (1.-smoothstep(0.35,0.45,dist));
-    vec3 col = vColor + (1.0 - smoothstep(0., 0.2, dist)) * isLast * 0.7;
-    if (length(uv) < size) { gl_FragColor = vec4(col, blend);   }
-    else { discard; }
+    if (length(uv) < size) {
+      float blend = 1.-smoothstep(0.42,0.48,dist);
+      vec3 col = vColor + (1.0 - smoothstep(0., 0.2, dist)) * isLast * 0.7;
+      gl_FragColor = vec4(col, blend);
+    } else { discard; }
 }
 `,
 
@@ -204,6 +205,8 @@ export function initialize(elt, colors, sz) {
       const pos = 4 * 3 * (9 + x + y * sz);
       attr[0] = color;
       attr[1] = size;
+      // ensure the timestamp always move forward so that there is only one last.
+      ts = Math.max(last + 0.001, ts)
       attr[2] = ts;
       if (size > 0) {
         last = ts;

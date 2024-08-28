@@ -31,6 +31,21 @@
         flex-direction: column;
         background: var(--wv-color-bg);
       }
+      button {
+        border-color: #222;
+        background-color: #666;
+        color: #ddd;
+        font-weight: 800;
+        border-radius: 3px;
+        padding: 4px 6px;
+        font-family: monospace;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #888;
+      }
+
       weiqi-visualizer {
         flex-grow: 1;
       }
@@ -56,7 +71,7 @@
     <div class="banner">
       <span style="flex-grow: 1">
         <input type="file" id="sgfFile" accept=".sgf" style="display: none" />
-        <input type="button" id="loadButton" value="Load SGF" />
+        <button id="loadButton">Load SGF</button>
       </span>
       <span>GPL Free Software</span>
       <a
