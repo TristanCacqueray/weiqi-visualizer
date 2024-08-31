@@ -24,11 +24,11 @@ Render a SGF file using:
 
 Available properties:
 
-- sgf: *text*, The game file content
+- href: *url*, SGF location, or use `sgf` to set the content manually
 - move: *number*, Load a given position
 - autoplay: *bool*, Start playing
 - speed: *float*, Playback speed
-- href: *url*, Remote sgf location
+- sgf: *text*, The game file content
 
 Usage example:
 

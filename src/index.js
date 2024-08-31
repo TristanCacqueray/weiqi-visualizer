@@ -13,16 +13,16 @@ template.innerHTML = templateBody;
 
 class WeiqiVisualizer extends HTMLElement {
   static observedAttributes = [
-    // text: The game file content
-    "sgf",
+    // url: SGF location, or use `sgf` to set the content manually
+    "href",
     // number: Load a given position
     "move",
     // bool: Start playing
     "autoplay",
     // float: Playback speed
     "speed",
-    // url: Remote sgf url
-    "href",
+    // text: The game file content
+    "sgf",
   ];
   constructor() {
     super();
@@ -32,7 +32,6 @@ class WeiqiVisualizer extends HTMLElement {
     // setup state
     this.orientation = null;
     this.playing = false;
-    this.animating = false;
     this.speed = 1;
     this.propMove = 0;
 
@@ -47,6 +46,7 @@ class WeiqiVisualizer extends HTMLElement {
     this.root = this.shadowRoot.getElementById("root");
     this.top = this.shadowRoot.getElementById("top");
     this.players = this.shadowRoot.getElementById("players");
+    this.playersStatus = this.shadowRoot.getElementById("player-status");
     this.playerBlack = this.shadowRoot.getElementById("player-black");
     this.playerWhite = this.shadowRoot.getElementById("player-white");
     this.controllers = this.shadowRoot.getElementById("controllers");
@@ -66,12 +66,11 @@ class WeiqiVisualizer extends HTMLElement {
   attributeChangedCallback(name, oldValue, newValue) {
     // console.log("Loading attribute", name, newValue.slice(0, 42));
     if (name === "move") {
+      // Save the value for the initialize callback
+      this.propMove = parseInt(newValue);
       if (this.display.moves.length > 0) {
         // Apply the move if the sgf is already loaded
         this.setMove(this.propMove);
-      } else {
-        // Save the value for the connectedCallback
-        this.propMove = parseInt(newValue);
       }
     } else if (name === "sgf") {
       this.initialize(newValue);
@@ -99,20 +98,21 @@ class WeiqiVisualizer extends HTMLElement {
 
     this.slider = elt.getElementById("slider");
     this.slider.oninput = (ev) => {
-      this.setMove(parseInt(ev.target.value), 0, "slider");
+      this.setMove(parseInt(ev.target.value), "slider");
     };
 
     const togglePlay = () => {
-      if (this.display.move >= this.display.moves.length) {
+      if (this.display.move + 1 >= this.display.moves.length) {
         // reset
         this.setMove(0);
         this.playing = true;
+        this.startPlaying();
       } else {
         // Toggle pause
         this.playing = !this.playing;
+        this.startPlaying(true);
       }
-      if (this.playing) this.startPlaying(true);
-      else this.stopPlaying();
+      if (!this.playing && this.timer) clearTimeout(this.timer);
     };
     this.play = elt.getElementById("play");
     this.play.onclick = togglePlay;
@@ -147,27 +147,29 @@ class WeiqiVisualizer extends HTMLElement {
   initialize(sgf) {
     const [info, moves] = getMoves(sgf);
     this.display.initialize(info.size, moves);
-    this.playerBlack.innerHTML = info.black.name;
-    this.playerWhite.innerHTML = info.white.name;
+    this.playerBlack.innerHTML = info.black.name + " (B)";
+    this.playerWhite.innerHTML = info.white.name + " (W)";
     this.slider.max = moves.length - 1;
+    this.result = document.createTextNode("Result: " + info.result);
     this.setMove(this.propMove);
     this.startPlaying();
   }
 
   startPlaying(advance) {
     if (this.playing) {
-      if (this.speed > 1) this.comment.innerHTML = "";
+      if (this.speed > 1) {
+        // In high speed, skip annotations
+        this.comment.innerHTML = "";
+        this.display.setMarks(null, this.display.move);
+      }
       if (advance) this.setMove(this.display.move + 1);
-      this.stopPlaying();
+      if (this.timer) clearTimeout(this.timer);
       const comment = this.comment.textContent;
       // Wait at least 1sec, then up to 5sec with 50ms per comment's word
       const moveDelay = Math.min(5000, Math.max(1000, comment ? comment.split(/\s+/).length * 200 : 0));
       // console.log("Move delay", moveDelay, this.speed)
       this.timer = setTimeout(() => this.startPlaying(true), moveDelay / this.speed);
     }
-  }
-  stopPlaying() {
-    if (this.timer) clearTimeout(this.timer);
   }
 
   animate() {
@@ -187,16 +189,13 @@ class WeiqiVisualizer extends HTMLElement {
     nextFrame();
   }
 
-  setMove(move, iTime, source) {
+  setMove(move, source) {
     if (move < 0 || move >= this.display.moves.length) {
       // out of bound move, stop the animation
       this.playing = false;
       return;
     }
-    if (!iTime) {
-      // record the move time for controller events (the animation provides the uniform one).
-      iTime = performance.now();
-    }
+    let iTime = performance.now();
 
     // Update the stone attributes
     let start = this.display.move + 1;
@@ -210,25 +209,26 @@ class WeiqiVisualizer extends HTMLElement {
     const step = 200 / Math.abs(end - start);
     for (let next = start; next != end; next += dir) {
       // console.log(dir < 0 ? "Removing" : "Applying", next);
-      this.display.moves[next].events.forEach(([x, y, psign, nsign]) => {
+      this.display.moves[next].events.forEach(([i, psign, nsign]) => {
         let sign = nsign;
         let color = sign == 0 ? psign : nsign;
         if (dir < 0) {
           sign = psign;
           color = sign;
         }
-        this.display.setStone(x, y, color, Math.abs(sign), iTime);
+        this.display.setStone(i, color, Math.abs(sign), iTime);
       });
       // Add a slight delay when jumping long distance with the slider
       iTime += step;
     }
 
     // Record the current move
-    this.display.moves[move].events.forEach(([x, y, _, sign]) => {
-      if (sign != 0) this.display.setLast(x, y);
+    this.display.moves[move].events.forEach(([i, _, sign]) => {
+      if (sign != 0) this.display.last = i;
     });
-    this.display.move = move;
+
     if (!this.playing || (this.playing && this.speed == 1)) {
+      this.display.setMarks(move, this.display.move);
       const curMove = this.display.moves[move];
       if (curMove.comment) {
         this.comment.replaceChildren(curMove.comment);
@@ -236,7 +236,13 @@ class WeiqiVisualizer extends HTMLElement {
         this.comment.innerHTML = "";
       }
     }
-
+    if (move + 1 == this.display.moves.length) {
+      this.playersStatus.innerHTML = "";
+      this.playersStatus.append(this.result);
+    } else if (this.display.move + 1 == this.display.moves.length) {
+      this.playersStatus.innerHTML = "VS";
+    }
+    this.display.move = move;
     this.play.innerHTML = move;
     if (source !== "slider") {
       // Update the slider position

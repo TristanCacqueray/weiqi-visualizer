@@ -18,7 +18,7 @@
   "keywords": [
     "weiqi",
     "webgl",
-    "threejs"
+    "picogl"
   ],
   "dependencies": {
     "@sabaki/go-board": "^1.4.3",
