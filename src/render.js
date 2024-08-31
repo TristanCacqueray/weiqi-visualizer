@@ -209,14 +209,12 @@ export class BoardRenderer {
     this.stoneDataBuffer.restore(mkStoneData(this.sz));
 
     // Replay moves
-    for (let i = 0; i < this.move; i++) {
-      const moves = this.moves[i];
-      if (moves) {
-        const [x, y, _, sign] = moves[0];
-        this.setStone(x, y, sign, 1, 1);
-      }
+    for (let i = 0; i <= this.move; i++) {
+      this.moves[i].events.forEach(([x, y, _, sign]) => {
+        this.setStone(x, y, sign, Math.abs(sign), 0);
+        if (sign != 0) this.setLast(x, y);
+      });
     }
-
     this.setupGPU();
   }
 
@@ -239,14 +237,14 @@ export class BoardRenderer {
     }
   }
 
+  setLast(x, y) {
+    this.last = 9 + (x + y * this.sz);
+  }
+
   setStone(x, y, color, size, ts) {
     const pos = 4 * 2 * (9 + x + y * this.sz);
     this.attr[0] = color;
-    if (size > 0) {
-      this.last = 9 + (x + y * this.sz);
-    } else {
-      ts *= -1;
-    }
+    if (size == 0) ts *= -1;
     this.attr[1] = ts / 1000.0;
     this.stoneDataBuffer.data(this.attr, pos);
   }

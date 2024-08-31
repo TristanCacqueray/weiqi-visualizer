@@ -37,6 +37,7 @@ class WeiqiVisualizer extends HTMLElement {
     this.propMove = 0;
 
     this.board = this.shadowRoot.getElementById("board");
+    this.comment = this.shadowRoot.getElementById("comment");
     this.display = new BoardRenderer(this.board, getColors(window.getComputedStyle(this)));
 
     // setup controllers event handler
@@ -44,6 +45,7 @@ class WeiqiVisualizer extends HTMLElement {
 
     // setup layout
     this.root = this.shadowRoot.getElementById("root");
+    this.top = this.shadowRoot.getElementById("top");
     this.players = this.shadowRoot.getElementById("players");
     this.playerBlack = this.shadowRoot.getElementById("player-black");
     this.playerWhite = this.shadowRoot.getElementById("player-white");
@@ -54,10 +56,6 @@ class WeiqiVisualizer extends HTMLElement {
       }
     });
     this.resizeObserver.observe(this);
-  }
-
-  connectedCallback() {
-    if (this.playing) this.animate();
   }
 
   disconnectedCallback() {
@@ -112,10 +110,9 @@ class WeiqiVisualizer extends HTMLElement {
       } else {
         // Toggle pause
         this.playing = !this.playing;
-        if (this.playing) this.animate();
-        // ensure next move happens right away
-        this.lastMoveTS = -1000;
       }
+      if (this.playing) this.startPlaying(true);
+      else this.stopPlaying();
     };
     this.play = elt.getElementById("play");
     this.play.onclick = togglePlay;
@@ -127,6 +124,7 @@ class WeiqiVisualizer extends HTMLElement {
     this.speedSelector.onchange = (ev) => {
       // update animation speed from selection value
       this.speed = parseFloat(ev.target.value);
+      this.startPlaying();
     };
     this.speedSelector.onwheel = (ev) => {
       // adjust the animation speed from the mouse scroll event
@@ -151,36 +149,46 @@ class WeiqiVisualizer extends HTMLElement {
     this.display.initialize(info.size, moves);
     this.playerBlack.innerHTML = info.black.name;
     this.playerWhite.innerHTML = info.white.name;
-    this.playersSize = this.players.getBoundingClientRect();
-    this.slider.max = moves.length;
+    this.slider.max = moves.length - 1;
     this.setMove(this.propMove);
+    this.startPlaying();
+  }
+
+  startPlaying(advance) {
+    if (this.playing) {
+      if (this.speed > 1) this.comment.innerHTML = "";
+      if (advance) this.setMove(this.display.move + 1);
+      this.stopPlaying();
+      const comment = this.comment.textContent;
+      // Wait at least 1sec, then up to 5sec with 50ms per comment's word
+      const moveDelay = Math.min(5000, Math.max(1000, comment ? comment.split(/\s+/).length * 200 : 0));
+      // console.log("Move delay", moveDelay, this.speed)
+      this.timer = setTimeout(() => this.startPlaying(true), moveDelay / this.speed);
+    }
+  }
+  stopPlaying() {
+    if (this.timer) clearTimeout(this.timer);
   }
 
   animate() {
-    this.lastMoveTS = this.drawingStart = performance.now();
+    this.drawingStart = performance.now();
     // We are already drawing...
     if (this.animating) return;
     this.animating = true;
     const nextFrame = () => {
       const iTime = performance.now();
-      if (this.playing) {
-        if (iTime - this.lastMoveTS > 500 / this.speed) {
-          // The last move was played long ago, move on to the next one
-          this.lastMoveTS = iTime;
-          this.setMove(this.display.move + 1, iTime);
-        }
-      } else if (iTime - this.drawingStart > 1000) {
-        this.animating = false;
-        return;
-      }
       this.display.draw(iTime);
-      requestAnimationFrame(nextFrame);
+      if (iTime - this.drawingStart > 1000) {
+        this.animating = false;
+      } else {
+        requestAnimationFrame(nextFrame);
+      }
     };
     nextFrame();
   }
 
   setMove(move, iTime, source) {
-    if (move < 0 || move > this.display.moves.length) {
+    if (move < 0 || move >= this.display.moves.length) {
       // out of bound move, stop the animation
       this.playing = false;
       return;
@@ -191,8 +199,8 @@ class WeiqiVisualizer extends HTMLElement {
     }
 
     // Update the stone attributes
-    let start = this.display.move;
-    let end = move;
+    let start = this.display.move + 1;
+    let end = move + 1;
     let dir = Math.sign(end - start);
     if (dir < 0) {
       // When moving backward, we start by undoing the last move
@@ -202,7 +210,7 @@ class WeiqiVisualizer extends HTMLElement {
     const step = 200 / Math.abs(end - start);
     for (let next = start; next != end; next += dir) {
       // console.log(dir < 0 ? "Removing" : "Applying", next);
-      this.display.moves[next].forEach(([x, y, psign, nsign]) => {
+      this.display.moves[next].events.forEach(([x, y, psign, nsign]) => {
         let sign = nsign;
         let color = sign == 0 ? psign : nsign;
         if (dir < 0) {
@@ -216,7 +224,18 @@ class WeiqiVisualizer extends HTMLElement {
     }
 
     // Record the current move
+    this.display.moves[move].events.forEach(([x, y, _, sign]) => {
+      if (sign != 0) this.display.setLast(x, y);
+    });
     this.display.move = move;
+    if (!this.playing || (this.playing && this.speed == 1)) {
+      const curMove = this.display.moves[move];
+      if (curMove.comment) {
+        this.comment.replaceChildren(curMove.comment);
+      } else {
+        this.comment.innerHTML = "";
+      }
+    }
 
     this.play.innerHTML = move;
     if (source !== "slider") {
@@ -241,6 +260,9 @@ class WeiqiVisualizer extends HTMLElement {
       if (orientation == "vertical") {
         // Vertical: render the board and the controllers in a row
         this.root.style["flex-direction"] = "row";
+        this.top.style["flex-direction"] = "column";
+        this.top.style["height"] = "100%";
+        this.top.style["place-content"] = null;
         // The players are vertical
         this.players.style["flex-direction"] = "column";
         // The controller is a fixed column
@@ -250,9 +272,13 @@ class WeiqiVisualizer extends HTMLElement {
         // The slider is vertical
         this.slider.style["margin"] = "8px 0";
         this.slider.style["writing-mode"] = "vertical-lr";
+        this.top.appendChild(this.comment);
       } else {
         // Horizontal: render the board and the controllers in a column
         this.root.style["flex-direction"] = "column";
+        this.top.style["flex-direction"] = "row";
+        this.top.style["height"] = null;
+        this.top.style["place-content"] = "center";
         // The players are vertical
         this.players.style["flex-direction"] = "row";
         // The controller is a fixed row
@@ -262,19 +288,20 @@ class WeiqiVisualizer extends HTMLElement {
         // Ensure the slider is horizontal
         this.slider.style["margin"] = "0 8px";
         this.slider.style["writing-mode"] = "horizontal-tb";
+        this.root.appendChild(this.comment);
       }
       this.orientation = orientation;
-      this.playersSize = this.players.getBoundingClientRect();
     }
-
     // If the ui is too small, hide the players' name.
     if (
-      (orientation == "vertical" && width - boardSize - 28 < this.playersSize.width) ||
-      (orientation == "horizontal" && height - boardSize - 20 < this.playersSize.height)
+      (orientation == "vertical" && width - boardSize < 160) ||
+      (orientation == "horizontal" && height - boardSize < 60)
     ) {
       this.players.style["display"] = "none";
+      this.comment.style["display"] = "none";
     } else {
       this.players.style["display"] = "flex";
+      this.comment.style["display"] = "block";
     }
 
     // If the ui is too small, hide the slider.
@@ -283,11 +310,6 @@ class WeiqiVisualizer extends HTMLElement {
     } else {
       this.slider.style["display"] = "block";
     }
-
-    // Adjust the controller margin to push it away if possible
-    const topMargin = orientation == "vertical" ? 0 : Math.max(0, Math.min(5, availHeight - 20));
-    const leftMargin = orientation == "horizontal" ? 0 : Math.max(0, Math.min(5, availWidth - 28));
-    this.controllers.style["margin"] = `${topMargin}px 0 0 ${leftMargin}px`;
 
     // Set the board dimention
     this.display.resize(boardSize);

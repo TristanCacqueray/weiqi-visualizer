@@ -66,15 +66,22 @@ export const getMoves = (sgfTxt) => {
   let gen = gameTrees[0].listNodesHorizontally(0, 1);
 
   // Extract the game info from the first node
-  const inf = getGameInfo(gen.next().value.data);
+  const head = gen.next().value.data;
+  const inf = getGameInfo(head);
 
   // Setup the game board
   let board = Board.fromDimensions(inf.size);
 
   // process every move
-  const moves = [];
+  const mkMove = (node, events) => {
+    const move = { events };
+    if (node.C) move.comment = document.createTextNode(node.C);
+    return move;
+  };
+  const moves = [mkMove(head, [])];
   genMap(gen, (value) => {
     const [sign, vertex] = getMove(value.data);
+    const events = [];
     if (vertex !== null) {
       // play the move to get a new board
       const nextBoard = board.makeMove(sign, vertex, {
@@ -84,21 +91,15 @@ export const getMoves = (sgfTxt) => {
       });
 
       // collect the list of affected vertex and their prev/next values
-      const events = [];
       board.diff(nextBoard).forEach((vertex) => {
-        events.push([
-          vertex[0],
-          vertex[1],
-          board.get(vertex),
-          nextBoard.get(vertex),
-        ]);
+        events.push([vertex[0], vertex[1], board.get(vertex), nextBoard.get(vertex)]);
       });
-      moves.push(events);
       board = nextBoard;
     } else {
       // TODO: handle PASS
       console.log(sign + ": PASS");
     }
+    moves.push(mkMove(value.data, events));
   });
   return [inf, moves];
 };

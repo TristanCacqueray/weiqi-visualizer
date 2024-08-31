@@ -50,10 +50,15 @@
   #board {
     display: inline-block;
   }
+  div#top {
+    width: 100%;
+    place-content: center;
+    display: flex;
+  }
 
   div#players {
     padding: 5px;
-    display: flex;
+    display: grid;
     gap: 7px;
     align-items: center;
     font-weight: bold;
@@ -67,6 +72,14 @@
   div#player-black {
     background-color: var(--clr-bg2);
     color: var(--clr-black)
+  }
+
+  div#comment {
+    width: 95%;
+    padding: 8px 8px;
+    /* text-align: justify; */
+    height: 100%;
+    overflow-y: auto;
   }
 
   div#player-white {
@@ -118,10 +131,12 @@
   }
 </style>
 <div id="root">
+  <div id="top">
   <div id="players">
     <div id="player-black">Blacky</div>
     <bold>VS</bold>
     <div id="player-white">Whitey</div>
+  </div>
   </div>
   <canvas id="board"></canvas>
   <div id="controllers">
@@ -140,5 +155,8 @@
       <option value="8">x8</option>
       <option value="16">x16</option>
     </select>
+  </div>
+  <div id="comment">
+    comment
   </div>
 </div>
