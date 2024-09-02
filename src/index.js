@@ -88,7 +88,7 @@ class WeiqiVisualizer extends HTMLElement {
     const elt = this.shadowRoot;
 
     const onStep = (ev) => {
-      this.playing = false;
+      this.stopPlaying();
       const dir = ev.target.textContent == ">" ? 1 : -1;
       this.setMove(this.display.move + dir);
     };
@@ -130,6 +130,7 @@ class WeiqiVisualizer extends HTMLElement {
       this.setSpeed(this.speed - ev.deltaY / (this.speed >= 10 ? 100.0 : 1000.0));
     };
     this.board.onwheel = (ev) => {
+      this.stopPlaying();
       this.setMove(this.display.move + Math.floor(ev.deltaY / 126));
     };
   }
@@ -169,6 +170,11 @@ class WeiqiVisualizer extends HTMLElement {
       // console.log("Move delay", moveDelay, this.speed)
       this.timer = setTimeout(() => this.startPlaying(true), moveDelay / this.speed);
     }
+  }
+
+  stopPlaying() {
+    this.playing = false;
+    if (this.timer) clearTimeout(this.timer);
   }
 
   animate() {
