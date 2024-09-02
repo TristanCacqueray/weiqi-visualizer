@@ -44,11 +44,11 @@ CSS default variable available:
 
 ```css
     /* Black stone colors */
-    var(--wv-color-black, #EA55B1);
+    var(--wv-color-black, #765aff);
     /* White stone colors */
-    var(--wv-color-white, #A992FA);
+    var(--wv-color-white, #e32881);
     /* Hoshi colors */
-    var(--wv-color-hoshi, #FEC763);
+    var(--wv-color-hoshi, #ffa331);
     /* Grid lines colors */
     var(--wv-color-grid, #333333);
 

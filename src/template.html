@@ -1,9 +1,9 @@
 <style>
   :host {
     /* Black stone colors */
-    --clr-black: var(--wv-color-black, #e32881);
+    --clr-black: var(--wv-color-black, #765aff);
     /* White stone colors */
-    --clr-white: var(--wv-color-white, #765aff);
+    --clr-white: var(--wv-color-white, #e32881);
     /* Hoshi colors */
     --clr-hoshi: var(--wv-color-hoshi, #ffa331);
     /* Grid lines colors */
@@ -140,9 +140,6 @@
   </div>
   <canvas id="board"></canvas>
   <div id="controllers">
-    <button id="prev">&lt;</button>
-    <button id="play">0</button>
-    <button id="next">&gt;</button>
     <input id="slider" type="range" min="0" max="255" value="0" />
     <select id="speed">
       <option id="custom" style="display: none"></option>
@@ -155,6 +152,9 @@
       <option value="8">x8</option>
       <option value="16">x16</option>
     </select>
+    <button id="prev">&lt;</button>
+    <button id="play">0</button>
+    <button id="next">&gt;</button>
   </div>
   <div id="comment">
     comment

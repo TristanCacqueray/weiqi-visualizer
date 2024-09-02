@@ -277,7 +277,7 @@ class WeiqiVisualizer extends HTMLElement {
         // The players are vertical
         this.players.style["flex-direction"] = "column";
         // The controller is a fixed column
-        this.controllers.style["flex-direction"] = "column-reverse";
+        this.controllers.style["flex-direction"] = "column";
         this.controllers.style["width"] = "28px";
         this.controllers.style["height"] = "100%";
         // The slider is vertical
