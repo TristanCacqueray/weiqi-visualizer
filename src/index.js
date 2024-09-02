@@ -51,9 +51,8 @@ class WeiqiVisualizer extends HTMLElement {
     this.playerWhite = this.shadowRoot.getElementById("player-white");
     this.controllers = this.shadowRoot.getElementById("controllers");
     this.resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.contentBoxSize) this.handleResize(entry.contentRect.width, entry.contentRect.height);
-      }
+      const entry = entries[0];
+      this.handleResize(entry.contentRect.width, entry.contentRect.height);
     });
     this.resizeObserver.observe(this);
   }

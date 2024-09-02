@@ -107,7 +107,7 @@ const stoneVertexShader = `#version 300 es
 
 import { symbols } from "./game.js";
 const atlasCount = symbols.length;
-const atlasHeight = 40;
+const atlasHeight = 40 * window.devicePixelRatio;
 const atlasWidth = atlasHeight * atlasCount;
 function mkFontAtlas() {
   var offScreenCanvas = document.createElement("canvas");
@@ -262,8 +262,10 @@ export class BoardRenderer {
 
   resize(dim) {
     // console.log("Resizing", dim, this.sz);
-    this.dim = dim;
+    this.dim = dim * window.devicePixelRatio;
     this.app.resize(this.dim, this.dim);
+    this.app.canvas.style["width"] = dim + "px";
+    this.app.canvas.style["height"] = dim + "px";
     if (this.sz > 0) {
       this.sceneUB.set(4, this.dim / (this.sz + 1)).update();
       this.draw();

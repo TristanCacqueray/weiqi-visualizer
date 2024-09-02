@@ -1,6 +1,6 @@
 .PHONY: dev
 dev:
-	npx vite src
+	npx vite --host 0.0.0.0 src
 
 .PHONY: publish
 publish:
