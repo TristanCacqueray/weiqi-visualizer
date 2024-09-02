@@ -107,7 +107,7 @@ const stoneVertexShader = `#version 300 es
 
 import { symbols } from "./game.js";
 const atlasCount = symbols.length;
-const atlasHeight = 40 * window.devicePixelRatio;
+const atlasHeight = 60 * window.devicePixelRatio;
 const atlasWidth = atlasHeight * atlasCount;
 function mkFontAtlas() {
   var offScreenCanvas = document.createElement("canvas");
@@ -116,11 +116,14 @@ function mkFontAtlas() {
   var ctx = offScreenCanvas.getContext("2d", { antialias: false });
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = "28px sans-serif";
   ctx.fillStyle = "#ddd";
-  symbols.forEach((text, pos) => {
-    ctx.fillText(text, atlasHeight / 2 + pos * atlasHeight, atlasHeight / 2);
-  });
+  for (let pos = 0; pos < symbols.length; pos++) {
+    if (pos < 10)
+      // make numbers bold
+      ctx.font = `bold ${atlasHeight}px sans-serif`;
+    else ctx.font = `${atlasHeight * 0.5}px sans-serif`;
+    ctx.fillText(symbols[pos], atlasHeight / 2 + pos * atlasHeight, atlasHeight / 2);
+  }
   // document.body.appendChild(offScreenCanvas);
   const rgba = ctx.getImageData(0, 0, atlasWidth, atlasHeight).data;
   const alphas = new Uint8ClampedArray(atlasWidth * atlasHeight);
@@ -128,6 +131,19 @@ function mkFontAtlas() {
     alphas[i] = rgba[i * 4 + 3];
   }
   return alphas;
+}
+
+export function getNumberMark(num) {
+  if (num < 10) {
+    // single digits point directly to the atlas
+    return num + 1;
+  } else if (num < 100) {
+    // store double digit in the [100..200] range
+    return num + 100;
+  } else if (num < 1000) {
+    // store triple digits in the [200..] range
+    return num + 200;
+  }
 }
 
 const stoneFragmentShader = `#version 300 es
@@ -140,32 +156,84 @@ const stoneFragmentShader = `#version 300 es
         in float mark;
         out vec4 fragColor;
 
+        vec2 remap(vec2 p, float start, float end) {
+           if (p.x >= start && p.x <= end && p.y >= start && p.y <= end) {
+             return (p - vec2(start)) * (1. / (end - start));
+           } else {
+             return vec2(-1.);
+           }
+        }
+
         void main() {
-          vec2 tcoord = vec2((mark - 1.0 + gl_PointCoord.x)/${atlasCount}.0, gl_PointCoord.y);
-          vec4 scol = texture(tex, tcoord);
+          float tx = 0.0;
+          float ty = 0.0;
+          if (mark < 11.0) {
+            // 1 digit
+            vec2 coord = remap(gl_PointCoord.xy, 0.25, 0.75);
+            if (coord != vec2(-1.)) {
+            tx = mark - 1. + coord.x;
+            ty = coord.y;
+
+          }} else if (mark >= 200.0) {
+            // 3 digit
+            tx = mark - 200.;
+            float split = 1./3.;
+            ty = (gl_PointCoord.y - split) * 2.5;
+            if (gl_PointCoord.x <= split) {
+                // first digit
+                tx = floor(tx / 100.);
+                tx += (gl_PointCoord.x - 0.05) * 3.;
+            } else if (gl_PointCoord.x <= 2.*split){
+                // second digit
+                tx = floor(mod(tx, 100.) / 10.);
+                tx += (gl_PointCoord.x - split) * 3.;
+            } else  {
+                // thrid digit
+                tx = mod(tx, 10.);
+                tx += (gl_PointCoord.x - (2.*split) + 0.05) * 3.;
+              }
+          } else if (mark >= 100.0) {
+            // 2 digit numbers
+            tx = mark - 100.;
+            if (gl_PointCoord.y > 0.25 && gl_PointCoord.y < 0.75) {
+              ty = (gl_PointCoord.y - 1./3.) * 2.5;
+              if (gl_PointCoord.x <= 0.5) {
+                // first digit
+                tx = floor(tx / 10.);
+                tx += (gl_PointCoord.x - 0.1) * 2.;
+              } else {
+                // second digit
+                tx = mod(tx, 10.);
+                tx += (gl_PointCoord.x - 0.4) * 2.;
+              }
+          }} else {
+            tx = mark - 1.0 + gl_PointCoord.x;
+            ty = gl_PointCoord.y;
+          }
+          vec2 tcoord = vec2(tx/(${atlasCount}.0), ty);
+          float scol = texture(tex, tcoord).r;
+
           // fragColor = vec4(gl_PointCoord.xy, 0., 1.);
           // fragColor = vec4(texture(tex, tcoord).rgb, 1.0);
           // return;
 
           if (color == vec3(0.0) && mark != 0.0) {
             // Just a mark, display the texture
-            fragColor = vec4(.9, .9, .9, scol.r);
+            fragColor = vec4(.9, .9, .9, scol);
             return;
           }
 
           vec3 col = vec3(0.0);
-          float blend = scol.r;
+          float blend = scol;
           float dist = length(gl_PointCoord.xy - .5);
           if (dist < min(0.48, age/(1.+ age))) {
             blend = 1.-smoothstep(0.42,0.48,dist);
             col += color;
+            col += last * (vec3(1.) - color) * smoothstep(0.33,0.5,dist);
           }
           if (mark != 0.0)
             // Add the mark
-            col = mix(color, vec3(.9), scol.r);
-          else
-            // Or add the last move highlight
-            col += (1.0 - smoothstep(0., 0.2, dist)) * last * 0.7;
+            col = mix(col, vec3(.9), scol);
           fragColor = vec4(col, blend * (1.0 - fade));
         }
 `;
@@ -191,7 +259,12 @@ export class BoardRenderer {
   constructor(elt, colorsMap) {
     this.app = PicoGL.createApp(elt.getContext("webgl2"));
 
-    this.font = this.app.createTexture2D(mkFontAtlas(), atlasWidth, atlasHeight, { internalFormat: PicoGL.R8 });
+    this.font = this.app.createTexture2D(mkFontAtlas(), atlasWidth, atlasHeight, {
+      internalFormat: PicoGL.R8,
+      wrapS: PicoGL.CLAMP_TO_EDGE,
+      wrapT: PicoGL.CLAMP_TO_EDGE,
+      minFilter: PicoGL.NEAREST,
+    });
     this.gridArrays = this.app.createVertexArray();
     this.stoneArrays = this.app.createVertexArray();
     this.sceneUB = this.app.createUniformBuffer([
@@ -307,6 +380,10 @@ export class BoardRenderer {
     this.stoneDataBuffer.data(this.mark, pos + 8);
   }
 
+  setNumber(i, num) {
+    this.setMark(i, getNumberMark(num));
+  }
+
   // initialize GPU resources, to be called on context lost
   setupGPU() {
     this.app
@@ -323,20 +400,15 @@ export class BoardRenderer {
       .update();
     this.gridArrays.vertexAttributeBuffer(0, this.gridPositionsBuffer);
     this.stoneArrays.vertexAttributeBuffer(0, this.stonePositionsBuffer).vertexAttributeBuffer(1, this.stoneDataBuffer);
-
-    /* // test render
-    const now = performance.now();
-    for (let i = 0; i < 2; i++) {
-      this.setStone(5 + i + 5 * 19, -1, 1, now);
-      this.setStone(5 + i + 6 * 19, 1, 1, now);
-    }
-    for (let i = 0; i < 2; i++) {
-      this.setMark(5 + i + 5 * 19, 1 + i);
-      this.setMark(5 + i + 6 * 19, 1 + i);
-      this.setMark(5 + i + 7 * 19, 1 + i);
-    }
-    */
     this.draw();
+  }
+
+  demoBoard() {
+    // Fill with numbers
+    for (let i = 0; i < this.sz * this.sz; i++) {
+      if (i % 15 <= 2) this.setStone(i, i % 2 == 0 ? 1 : -1, 1, 0);
+      this.setNumber(i, i + 91);
+    }
   }
 
   mkStoneData(hoshiStart, hoshiSpacing) {
@@ -368,6 +440,7 @@ export class BoardRenderer {
       this.stonePositionsBuffer = this.app.createVertexBuffer(PicoGL.FLOAT, 2, mkStonePositions(sz));
       this.stoneDataBuffer = this.app.createVertexBuffer(PicoGL.FLOAT, 3, this.mkStoneData());
       this.setupGPU();
+      // this.demoBoard();
     } else {
       this.stoneDataBuffer.data(mkStoneData(sz));
     }

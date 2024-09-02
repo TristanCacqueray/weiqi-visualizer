@@ -56,7 +56,7 @@ function getMove(data) {
   } else return [sign, null];
 }
 
-export const symbols = ["a", "b", "c", "d", "e", "f"];
+export const symbols = "0123456789abcdefghijklmnopqrstuvwxyz";
 function getMarks(v, sz) {
   return v.map((s) => {
     const [x, y] = getVertex(s);
@@ -71,6 +71,7 @@ function getMarks(v, sz) {
   });
 }
 
+import { getNumberMark } from "./render.js";
 export const getMoves = (sgfTxt) => {
   // Parse the sgf and setup a gametree
   let getId = (
@@ -124,5 +125,29 @@ export const getMoves = (sgfTxt) => {
     }
     moves.push(mkMove(value.data, events));
   });
+
+  // Add marks from comments
+  moves.forEach((move, moveNR) => {
+    if (move.comment) {
+      const match = move.comment.textContent.match(/\b[WB][0-9]+\b/g);
+      if (match) {
+        if (!move.marks) move.marks = [];
+        match
+          .map((m) => parseInt(m.slice(m[0] == 'W' || m[0] == 'B' ? 1 : 0)))
+          .sort()
+          .forEach((nr) => {
+            const markedMove = moves[nr];
+            if (markedMove) {
+              markedMove.events.forEach(([i, _, sign]) => {
+                if (sign != 0) {
+                  move.marks.push([i, getNumberMark(nr)]);
+                }
+              });
+            }
+          });
+      }
+    }
+  });
+
   return [inf, moves];
 };
