@@ -442,7 +442,7 @@ export class BoardRenderer {
       this.setupGPU();
       // this.demoBoard();
     } else {
-      this.stoneDataBuffer.data(mkStoneData(sz));
+      this.stoneDataBuffer.data(this.mkStoneData());
     }
   }
 }
